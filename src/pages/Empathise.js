@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import StageLayout from '../components/StageLayout';
 import { generateContent } from '../lib/gemini';
 import { useProgress } from '../context/ProgressContext';
-import { MessageSquare, Loader2, CheckCircle } from 'lucide-react';
+import { MessageSquare, CheckCircle } from 'lucide-react';
 
 const EmpathiseTool = ({ isCompleted, onComplete }) => {
   const [topic, setTopic] = useState('');

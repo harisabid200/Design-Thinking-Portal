@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Link as LinkIcon, Download } from 'lucide-react';
+import { FileText, Link as LinkIcon } from 'lucide-react';
 
 const ResourcesTab = ({ resources = [] }) => {
   if (!resources || resources.length === 0) {
