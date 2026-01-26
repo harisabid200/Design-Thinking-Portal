@@ -1,11 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { CheckCircle, Play } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 const VideoPlayer = ({ src, onComplete, poster, isCompleted }) => {
   const videoRef = useRef(null);
   const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [played, setPlayed] = useState(false);
   const [completed, setCompleted] = useState(isCompleted);
 
   // If passed completion state changes (e.g. from DB), update local
@@ -18,8 +16,6 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted }) => {
       const current = videoRef.current.currentTime;
       const total = videoRef.current.duration;
       
-      setDuration(total);
-      
       if (total > 0) {
         const percent = (current / total) * 100;
         setProgress(percent);
@@ -29,17 +25,6 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted }) => {
           setCompleted(true);
           if (onComplete) onComplete();
         }
-      }
-    }
-  };
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-        setPlayed(true);
-      } else {
-        videoRef.current.pause();
       }
     }
   };

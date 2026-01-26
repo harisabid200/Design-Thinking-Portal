@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { LayoutDashboard, Plus, Save } from 'lucide-react';
+import { LayoutDashboard, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const InstructorPage = () => {

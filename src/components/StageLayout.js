@@ -4,7 +4,7 @@ import VideoPlayer from './VideoPlayer';
 import PlaylistSidebar from './PlaylistSidebar';
 import NotesTab from './NotesTab';
 import ResourcesTab from './ResourcesTab';
-import { BookOpen, FileText, PenTool, Layout as LayoutIcon, Info } from 'lucide-react';
+import { FileText, PenTool, Info } from 'lucide-react';
 
 const StageLayout = ({ stageName, activeToolComponent }) => {
   const [content, setContent] = useState([]);
