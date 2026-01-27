@@ -18,31 +18,31 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'notes', 'resources'
 
   useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('stage_content')
+          .select('*')
+          .eq('stage_name', stageName)
+          .order('sequence_order', { ascending: true });
+  
+        if (error) throw error;
+  
+        setContent(data);
+        if (data.length > 0) {
+          const firstVideo = data.find(c => c.type === 'video') || data[0];
+          setCurrentContent(firstVideo);
+        }
+      } catch (error) {
+        console.error('Error fetching content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchContent();
   }, [stageName]);
-
-  const fetchContent = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('stage_content')
-        .select('*')
-        .eq('stage_name', stageName)
-        .order('sequence_order', { ascending: true });
-
-      if (error) throw error;
-
-      setContent(data);
-      if (data.length > 0) {
-        const firstVideo = data.find(c => c.type === 'video') || data[0];
-        setCurrentContent(firstVideo);
-      }
-    } catch (error) {
-      console.error('Error fetching content:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const currentVideos = content.filter(c => c.type === 'video');
   const currentResources = content.filter(c => c.type !== 'video');
