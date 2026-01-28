@@ -6,13 +6,13 @@ const ProgressContext = createContext({});
 
 export const useProgress = () => useContext(ProgressContext);
 
+const STAGE_ORDER = ['Empathise', 'Define', 'Ideate', 'Prototype', 'Test'];
+
 export const ProgressProvider = ({ children }) => {
   const { user } = useAuth();
   const [projectId, setProjectId] = useState(null);
   const [stages, setStages] = useState({});
   const [loading, setLoading] = useState(true);
-
-  const STAGE_ORDER = ['Empathise', 'Define', 'Ideate', 'Prototype', 'Test'];
 
   useEffect(() => {
     if (!user) {
@@ -73,7 +73,7 @@ export const ProgressProvider = ({ children }) => {
     fetchProgress();
   }, [user]);
 
-  const isStageUnlocked = (stageName) => {
+  const isStageUnlocked = React.useCallback((stageName) => {
     // Stage names in DB/Code: 'Empathise', 'Define', 'Ideate', 'Prototype', 'Test'
     // Ensure case match if needed, but we seem consistent
     const index = STAGE_ORDER.indexOf(stageName);
@@ -83,9 +83,9 @@ export const ProgressProvider = ({ children }) => {
     const prevStage = STAGE_ORDER[index - 1];
     // Check if previous stage is completed
     return stages[prevStage] === 'completed';
-  };
+  }, [stages]);
 
-  const updateStageStatus = async (stageName, status) => {
+  const updateStageStatus = React.useCallback(async (stageName, status) => {
       if (!projectId) return;
 
       // Upsert progress
@@ -105,7 +105,7 @@ export const ProgressProvider = ({ children }) => {
           ...prev,
           [stageName]: status
       }));
-  };
+  }, [projectId]);
 
   return (
     <ProgressContext.Provider value={{ stages, isStageUnlocked, updateStageStatus, projectId, loading }}>

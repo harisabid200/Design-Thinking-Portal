@@ -12,20 +12,47 @@ const InstructorPage = () => {
     title: '',
     url: '',
     description: '',
-    sequence_order: 0
+    sequence_order: 0,
+    parent_id: null
   });
+  const [stageVideos, setStageVideos] = useState([]); // Store videos for parent selection
+
+  const fetchStageVideos = React.useCallback(async () => {
+    const { data } = await supabase
+        .from('stage_content')
+        .select('id, title')
+        .eq('stage_name', formData.stage_name)
+        .eq('type', 'video');
+    if (data) setStageVideos(data);
+  }, [formData.stage_name]);
+
+  // Fetch videos whenever stage changes
+  React.useEffect(() => {
+    fetchStageVideos();
+  }, [fetchStageVideos]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // If we are adding a video, it can't have a parent.
+      // If adding a resource, it CAN have a parent.
+      const payload = { ...formData };
+      if (payload.type === 'video') {
+         payload.parent_id = null;
+      }
+      // If parent_id is empty string, make it null
+      if (payload.parent_id === '') payload.parent_id = null;
+
       const { error } = await supabase
         .from('stage_content')
-        .insert([formData]);
+        .insert([payload]);
 
       if (error) throw error;
       alert('Content added successfully!');
-      setFormData({ ...formData, title: '', url: '', description: '' });
+      setFormData({ ...formData, title: '', url: '', description: '', parent_id: null });
+      // Refresh videos list if we just added a video
+      if (payload.type === 'video') fetchStageVideos();
     } catch (error) {
       alert('Error adding content: ' + error.message);
     } finally {
@@ -85,6 +112,24 @@ const InstructorPage = () => {
                 />
                 </div>
             </div>
+
+            {/* Parent Video Selection (Only if not a video) */}
+            {formData.type !== 'video' && (
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Parent Video (Optional: Link this resource to a video)</label>
+                   <select
+                        className="w-full rounded-lg border-gray-300 shadow-sm p-2 border"
+                        value={formData.parent_id || ''}
+                        onChange={e => setFormData({...formData, parent_id: e.target.value === '' ? null : e.target.value})}
+                    >
+                        <option value="">-- No Parent (Standalone) --</option>
+                        {stageVideos.map(v => (
+                            <option key={v.id} value={v.id}>{v.title}</option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">If selected, this resource will appear nested under the video in the course playlist.</p>
+                </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>

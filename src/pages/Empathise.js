@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import StageLayout from '../components/StageLayout';
 import { generateContent } from '../lib/gemini';
 import { useProgress } from '../context/ProgressContext';
-import { MessageSquare, CheckCircle } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 
 const EmpathiseTool = ({ isCompleted, onComplete }) => {
   const [topic, setTopic] = useState('');
@@ -81,21 +81,7 @@ const EmpathiseTool = ({ isCompleted, onComplete }) => {
             </div>
         )}
 
-        <div className="mt-auto pt-6 border-t border-gray-100">
-            {isCompleted ? (
-                <div className="flex items-center justify-center text-green-600 font-bold text-sm bg-green-50 py-2 rounded">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Stage Completed
-                </div>
-            ) : (
-                <button
-                onClick={onComplete}
-                className="w-full py-3 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm"
-                >
-                Mark Stage as Done
-                </button>
-            )}
-        </div>
+        {/* Completion logic removed as per new design - handled by video progress now */}
     </div>
   );
 };
