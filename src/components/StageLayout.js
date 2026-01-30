@@ -1,103 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import VideoPlayer from './VideoPlayer';
-import PlaylistSidebar from './PlaylistSidebar';
 import NotesTab from './NotesTab';
-import { PenTool, Info } from 'lucide-react';
+import UpNextOverlay from './UpNextOverlay';
+import ProjectWorkspace from './project/ProjectWorkspace';
+import ProjectSelectionModal from './project/ProjectSelectionModal';
+import StageUnlockProgress from './StageUnlockProgress';
+import { PenTool, Info, FolderKanban, List, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProgress } from '../context/ProgressContext';
+import { useProject } from '../context/ProjectContext';
+import { useCourseContent } from '../context/CourseContentContext';
 import CourseHeader from './CourseHeader';
+import CourseSidebar from './CourseSidebar';
 
 const StageLayout = ({ stageName, activeToolComponent }) => {
   const { user } = useAuth();
-  const { updateStageStatus, stages } = useProgress(); 
-  const [content, setContent] = useState([]);
-  const [currentContent, setCurrentContent] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [completedIds, setCompletedIds] = useState({}); // { [id]: boolean }
-  const [videoPositions, setVideoPositions] = useState({}); // { [id]: number (seconds) }
+  const { isStageUnlocked, refreshProgress, getStageInfo } = useProgress();
+  const { showProjectModal, setShowProjectModal } = useProject();
+  
+  // Get cached content from global context
+  const { 
+    allContent, 
+    videoProgress, 
+    videoPositions: cachedPositions,
+    loading: contentLoading, 
+    initialLoadComplete,
+    getStageVideos
+  } = useCourseContent();
 
-  // Right Panel State
-  const [isToolActive, setIsToolActive] = useState(false);
+  // Local state
+  const [currentContent, setCurrentContent] = useState(null);
+  const [completedIds, setCompletedIds] = useState({});
+  const [videoPositions, setVideoPositions] = useState({});
+
+  // Right Panel State - 3 tabs: content, project, tools
+  const [sidebarTab, setSidebarTab] = useState('content');
   
   // Bottom Tab State
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'notes'
+  const [activeTab, setActiveTab] = useState('overview');
 
+  // Up Next Overlay State
+  const [showUpNext, setShowUpNext] = useState(false);
+  const [justCompletedVideoId, setJustCompletedVideoId] = useState(null);
+
+  // Sync progress from context to local state
   useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('stage_content')
-          .select('*')
-          .eq('stage_name', stageName)
-          .order('sequence_order', { ascending: true });
-  
-        if (error) throw error;
-  
-        setContent(data);
-        if (data.length > 0) {
-          const firstVideo = data.find(c => c.type === 'video') || data[0];
-          setCurrentContent(firstVideo);
-        }
+    setCompletedIds(videoProgress);
+    setVideoPositions(cachedPositions);
+  }, [videoProgress, cachedPositions]);
 
-        // Fetch progress for this user
-        if (user?.id) {
-            const { data: progressData } = await supabase
-                .from('video_progress')
-                .select('content_id, is_completed, last_position_seconds')
-                .eq('user_id', user.id);
-            
-            if (progressData) {
-                const progressMap = {};
-                const positionMap = {};
-                progressData.forEach(p => {
-                    progressMap[p.content_id] = p.is_completed;
-                    positionMap[p.content_id] = p.last_position_seconds || 0;
-                });
-                setCompletedIds(progressMap);
-                setVideoPositions(positionMap);
-            }
-        }
-
-      } catch (error) {
-        console.error('Error fetching content:', error);
-      } finally {
-        setLoading(false);
+  // Set initial current content when stage changes (INSTANT - no loading)
+  useEffect(() => {
+    if (initialLoadComplete) {
+      const stageVideos = getStageVideos(stageName);
+      if (stageVideos.length > 0 && (!currentContent || currentContent.stage_name !== stageName)) {
+        setCurrentContent(stageVideos[0]);
       }
-    };
-
-    fetchContent();
-  }, [stageName, user?.id]); // Use user.id to avoid re-running on object reference changes
-
-  const currentVideos = content.filter(c => c.type === 'video');
-  const currentResources = content.filter(c => c.type !== 'video');
-
-  // Check for Stage Completion (Auto-Unlock)
-  useEffect(() => {
-    if (loading || currentVideos.length === 0) return;
-    
-    // Ensure all videos are completed AND we haven't already marked it as completed
-    const allWatched = currentVideos.every(v => completedIds[v.id]);
-    const isAlreadyCompleted = stages[stageName] === 'completed';
-
-    if (allWatched && !isAlreadyCompleted) {
-        console.log(`All videos watched in ${stageName}. Unlocking next stage...`);
-        updateStageStatus(stageName, 'completed');
     }
-  }, [completedIds, currentVideos, stageName, updateStageStatus, stages, loading]);
+  }, [stageName, initialLoadComplete, getStageVideos, currentContent]);
 
   // Handle Video Progress Update (Resume Feature)
   const handleProgressUpdate = async (time) => {
     if (!currentContent || !user) return;
     
-    // Update local state less frequently if needed, but for now we just keep it
-    // Actually, we should probably debounce the DB save
-    // For simplicity in this step, let's just save every 5 seconds or allow the component to handle debouncing?
-    // Let's implement a simple throttle logic or just save on pause?
-    // User requested "Resume", so we need to save periodically.
-    
-    // We will save to DB every ~5 seconds by checking integer modulo
     if (Math.floor(time) % 5 === 0) {
          await supabase
             .from('video_progress')
@@ -111,12 +77,10 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
   };
 
   // Handle Video Completion Toggle
-  const handleToggleComplete = async (videoId, isComplete) => {
-    // Optimistic Update
+  const handleToggleComplete = useCallback(async (videoId, isComplete) => {
     setCompletedIds(prev => ({ ...prev, [videoId]: isComplete }));
 
     if (user) {
-        // Upsert progress
         const { error } = await supabase
             .from('video_progress')
             .upsert({
@@ -127,41 +91,95 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
             }, { onConflict: 'user_id, content_id' });
         
         if (error) console.error('Error saving progress:', error);
+        
+        // Refresh stage completion status (for locking/unlocking)
+        if (refreshProgress) {
+          refreshProgress();
+        }
     }
-  };
+  }, [user, refreshProgress]);
 
-  // Handle Tool Activation
-  const toggleTool = (active) => {
-    setIsToolActive(active);
-  };
+  // Handle Video Completion - Show Up Next Overlay
+  const handleVideoComplete = useCallback((videoId) => {
+    // Mark as completed
+    handleToggleComplete(videoId, true);
+    
+    // Show up next overlay
+    setJustCompletedVideoId(videoId);
+    setShowUpNext(true);
+  }, [handleToggleComplete]);
+
+  // Filter content for CURRENT stage (using cached allContent)
+  const currentStageVideos = allContent.filter(c => c.stage_name === stageName && c.type === 'video');
+  const allVideos = allContent.filter(c => c.type === 'video');
+  const allResources = allContent.filter(c => c.type !== 'video');
+
+  // Find next video in current stage
+  const getNextVideo = useCallback(() => {
+    if (!currentContent) return null;
+    const currentIndex = currentStageVideos.findIndex(v => v.id === currentContent.id);
+    if (currentIndex >= 0 && currentIndex < currentStageVideos.length - 1) {
+      return currentStageVideos[currentIndex + 1];
+    }
+    return null;
+  }, [currentContent, currentStageVideos]);
+
+  // Check if all videos in stage are complete (including the just-completed one)
+  const isStageFullyComplete = useCallback(() => {
+    return currentStageVideos.every(v => 
+      completedIds[v.id] || v.id === justCompletedVideoId
+    );
+  }, [currentStageVideos, completedIds, justCompletedVideoId]);
+
+  // Handle Play Next
+  const handlePlayNext = useCallback(() => {
+    const nextVideo = getNextVideo();
+    if (nextVideo) {
+      setCurrentContent(nextVideo);
+    }
+    setShowUpNext(false);
+    setJustCompletedVideoId(null);
+  }, [getNextVideo]);
+
+  // Handle Cancel Up Next
+  const handleCancelUpNext = useCallback(() => {
+    setShowUpNext(false);
+    setJustCompletedVideoId(null);
+  }, []);
 
   // Calculate Progress % for Header
-  const totalVideos = currentVideos.length;
-  const completedCount = currentVideos.filter(v => completedIds[v.id]).length;
-  const progressPercent = totalVideos > 0 ? Math.round((completedCount / totalVideos) * 100) : 0;
+  const totalStageVideos = currentStageVideos.length;
+  const completedStageCount = currentStageVideos.filter(v => completedIds[v.id]).length;
+  const videoProgressPercent = totalStageVideos > 0 ? Math.round((completedStageCount / totalStageVideos) * 100) : 0;
+  
+  // Check true stage completion (videos + assignments)
+  const stageInfo = getStageInfo(stageName);
+  const isStageComplete = stageInfo?.isComplete === true;
 
-  if (loading) return <div className="h-full flex items-center justify-center text-white bg-black">Loading...</div>;
+  if (contentLoading && !initialLoadComplete) return <div className="h-full flex items-center justify-center text-white bg-slate-900"><div className="animate-pulse">Loading course...</div></div>;
 
   return (
-    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative pt-16">
-      <CourseHeader title={stageName + " Stage"} progress={progressPercent} />
+    <div className="flex flex-col h-full w-full bg-slate-900 overflow-hidden relative pt-14">
+      <CourseHeader 
+        title={stageName + " Stage"} 
+        videoProgress={videoProgressPercent} 
+        isStageComplete={isStageComplete}
+      />
 
       <div className="flex-1 flex overflow-hidden relative">
       
       {/* LEFT / CENTER: Video & Bottom Panel */}
       <div className="flex-1 flex flex-col h-full min-w-0">
         
-        {/* 1. TOP: Video Area (Fixed Height ~60-65vh) */}
-        <div className="flex-none h-[65vh] bg-black flex items-center justify-center relative border-b border-gray-800">
+        {/* 1. TOP: Video Area */}
+        <div className="flex-none h-[60vh] bg-black flex items-center justify-center relative">
             {currentContent?.type === 'video' ? (
                 <div className="w-full h-full p-4 flex flex-col items-center justify-center">
                     <div className="w-full h-full max-w-6xl flex items-center justify-center">
-                       {/* Video Player Wrapper to maintain aspect ratio/clean look */}
-                       {/* Pass completion handler to player too if we want auto-complete at end */}
                        <VideoPlayer 
                             src={currentContent.url} 
                             isCompleted={!!completedIds[currentContent.id]}
-                            onComplete={() => handleToggleComplete(currentContent.id, true)}
+                            onComplete={() => handleVideoComplete(currentContent.id)}
                             initialTime={videoPositions[currentContent.id] || 0}
                             onProgressUpdate={handleProgressUpdate}
                        />
@@ -170,22 +188,34 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
             ) : (
                 <div className="text-gray-500">Select content to view</div>
             )}
+
+            {/* Up Next Overlay */}
+            {showUpNext && (
+              <UpNextOverlay
+                nextVideo={getNextVideo()}
+                onPlayNext={handlePlayNext}
+                onCancel={handleCancelUpNext}
+                countdown={5}
+                isStageComplete={isStageFullyComplete()}
+                stageName={stageName}
+              />
+            )}
         </div>
 
-        {/* 2. BOTTOM: Info & Tabs (Remaining Height) */}
-        <div className="flex-1 bg-white flex flex-col min-h-0 overflow-hidden">
+        {/* 2. BOTTOM: Info & Tabs */}
+        <div className="flex-1 bg-slate-800 flex flex-col min-h-0 overflow-hidden">
             {/* Tabs Header */}
-            <div className="flex border-b border-gray-200 bg-gray-50 px-4">
+            <div className="flex border-b border-slate-700 bg-slate-800/50 px-4">
                 <button 
                     onClick={() => setActiveTab('overview')}
-                    className={`py-3 px-4 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    className={`py-3 px-4 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
                 >
                     <Info className="w-4 h-4" />
                     <span>Overview</span>
                 </button>
                 <button 
                     onClick={() => setActiveTab('notes')}
-                    className={`py-3 px-4 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${activeTab === 'notes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    className={`py-3 px-4 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${activeTab === 'notes' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
                 >
                     <PenTool className="w-4 h-4" />
                     <span>Notes</span>
@@ -196,8 +226,25 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
             <div className="flex-1 overflow-y-auto p-6">
                 {activeTab === 'overview' && currentContent && (
                     <div className="max-w-3xl">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentContent.title}</h2>
-                        <p className="text-gray-600 leading-relaxed">{currentContent.description || 'No description available.'}</p>
+                        {/* Video Title & Description - PRIMARY CONTENT */}
+                        <div className="mb-6">
+                          <h2 className="text-xl font-bold text-white mb-2">{currentContent.title}</h2>
+                          <p className="text-slate-300 leading-relaxed">
+                            {currentContent.description || 'No description available for this lesson.'}
+                          </p>
+                        </div>
+                        
+                        {/* Stage Progress - shows requirements (hide when fully complete) */}
+                        {!isStageComplete && (
+                          <StageUnlockProgress
+                            videosComplete={videoProgress === 100}
+                            videosWatched={completedStageCount}
+                            videoCount={totalStageVideos}
+                            deliverablesComplete={stageInfo?.deliverablesComplete}
+                            stageName={stageName}
+                            onGoToProject={() => setSidebarTab('project')}
+                          />
+                        )}
                     </div>
                 )}
                 
@@ -208,45 +255,75 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
         </div>
       </div>
 
-      {/* RIGHT SIDEBAR: Playlist OR Tool (Fixed Width) */}
-      <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col z-20 shadow-xl flex-shrink-0">
-         {/* Toggle Header */}
-         {activeToolComponent && (
-            <div className="grid grid-cols-2 border-b border-gray-200 bg-white">
-                <button 
-                    onClick={() => toggleTool(false)}
-                    className={`py-3 text-xs font-bold uppercase tracking-wide ${!isToolActive ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                    Course Content
-                </button>
-                <button 
-                    onClick={() => toggleTool(true)}
-                    className={`py-3 text-xs font-bold uppercase tracking-wide ${isToolActive ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                    AI Tools
-                </button>
-            </div>
-         )}
+      {/* RIGHT SIDEBAR: Content / Project / Tools */}
+      <div className="w-80 bg-slate-900 border-l border-slate-700/50 flex flex-col z-20 flex-shrink-0">
+         {/* 3-Tab Header */}
+         <div className="grid grid-cols-3 border-b border-slate-700/50 bg-slate-800">
+             <button 
+                 onClick={() => setSidebarTab('content')}
+                 className={`py-3 text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-1
+                   ${sidebarTab === 'content' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-900' : 'text-slate-400 hover:bg-slate-700'}`}
+             >
+                 <List className="w-3.5 h-3.5" />
+                 Content
+             </button>
+             <button 
+                 onClick={() => setSidebarTab('project')}
+                 className={`py-3 text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-1
+                   ${sidebarTab === 'project' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-900' : 'text-slate-400 hover:bg-slate-700'}`}
+             >
+                 <FolderKanban className="w-3.5 h-3.5" />
+                 Project
+             </button>
+             <button 
+                 onClick={() => setSidebarTab('tools')}
+                 className={`py-3 text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-1
+                   ${sidebarTab === 'tools' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-900' : 'text-slate-400 hover:bg-slate-700'}`}
+             >
+                 <Sparkles className="w-3.5 h-3.5" />
+                 AI
+             </button>
+         </div>
 
          {/* Content Area */}
          <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
-             {isToolActive && activeToolComponent ? (
-                 <div className="h-full flex flex-col">
-                    {/* Tool Wrapper */}
-                    {activeToolComponent}
-                 </div>
-             ) : (
-                <PlaylistSidebar 
-                    content={currentVideos}
-                    resources={currentResources}
+             {sidebarTab === 'content' && (
+                <CourseSidebar 
+                    allVideos={allVideos}
+                    allResources={allResources}
+                    currentStage={stageName}
                     currentContentId={currentContent?.id}
                     onSelectContent={setCurrentContent}
                     completedIds={completedIds}
                     onToggleComplete={handleToggleComplete}
+                    isStageUnlocked={isStageUnlocked}
                 />
+             )}
+             
+             {sidebarTab === 'project' && (
+                <ProjectWorkspace currentStage={stageName} />
+             )}
+             
+             {sidebarTab === 'tools' && (
+                <div className="h-full flex flex-col">
+                   {activeToolComponent ? (
+                     activeToolComponent
+                   ) : (
+                     <div className="p-6 text-center text-slate-400">
+                       <Sparkles className="w-8 h-8 mx-auto mb-3 text-slate-500" />
+                       <p className="text-sm">No AI tools available for this stage yet.</p>
+                     </div>
+                   )}
+                </div>
              )}
          </div>
       </div>
+      
+      {/* Project Selection Modal */}
+      <ProjectSelectionModal 
+        isOpen={showProjectModal} 
+        onClose={() => setShowProjectModal(false)} 
+      />
       </div>
 
     </div>

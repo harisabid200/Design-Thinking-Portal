@@ -121,7 +121,7 @@ const Layout = ({ children }) => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50">
       
       {/* MOBILE HEADER */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4">
@@ -160,7 +160,7 @@ const Layout = ({ children }) => {
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col h-full lg:ml-64 w-full lg:w-[calc(100%-16rem)] pt-16 lg:pt-0">
-        <main className="flex-1 overflow-hidden h-full">
+        <main className="flex-1 overflow-auto h-full">
             {children}
         </main>
       </div>

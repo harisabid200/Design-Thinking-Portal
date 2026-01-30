@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Check, SkipForward } from 'lucide-react';
 
 const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, onProgressUpdate }) => {
   const videoRef = useRef(null);
@@ -10,6 +10,7 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, on
   // If passed completion state changes (e.g. from DB), update local
   useEffect(() => {
     if (isCompleted) setCompleted(true);
+    else setCompleted(false); // Reset when changing videos
   }, [isCompleted]);
 
   // Attempt to resume video on load (Native only)
@@ -18,14 +19,18 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, on
         videoRef.current.currentTime = initialTime;
         setHasSought(true);
     }
-  }, [src, initialTime, hasSought]); // Reset seek when source changes
+  }, [src, initialTime, hasSought]);
+
+  // Reset hasSought when src changes
+  useEffect(() => {
+    setHasSought(false);
+  }, [src]);
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
       const total = videoRef.current.duration;
       
-      // Notify parent of progress (frequency controlled by parent or native event firing)
       if (onProgressUpdate) onProgressUpdate(current);
 
       if (total > 0) {
@@ -41,13 +46,20 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, on
     }
   };
 
+  // Manual completion handler for embedded videos
+  const handleManualComplete = () => {
+    if (!completed) {
+      setCompleted(true);
+      if (onComplete) onComplete();
+    }
+  };
+
   // Helper to determine if we need an iframe (Drive/YouTube)
   const getEmbedUrl = (url) => {
     if (!url) return null;
     
     // Google Drive
     if (url.includes('drive.google.com')) {
-      // Convert /view or /share to /preview
       return url.replace(/\/view.*/, '/preview').replace(/\/share.*/, '/preview');
     }
     
@@ -66,9 +78,10 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, on
   };
 
   const embedUrl = getEmbedUrl(src);
+  const isEmbedded = !!embedUrl;
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-black shadow-lg group w-full h-full flex items-center justify-center">
+    <div className="relative rounded-xl overflow-hidden bg-black shadow-2xl group w-full h-full flex items-center justify-center">
       {embedUrl ? (
         <iframe 
             src={embedUrl}
@@ -90,9 +103,32 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, on
       
       {/* Overlay Badge for Completion */}
       {completed && (
-        <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full flex items-center space-x-1 shadow-md z-10 pointer-events-none">
+        <div className="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1.5 rounded-full flex items-center space-x-1.5 shadow-lg z-10 pointer-events-none">
           <CheckCircle className="w-4 h-4" />
           <span className="text-sm font-bold">Watched</span>
+        </div>
+      )}
+
+      {/* Manual Complete Button for Embedded Videos */}
+      {isEmbedded && !completed && (
+        <div className="absolute bottom-4 right-4 z-20">
+          <button
+            onClick={handleManualComplete}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
+          >
+            <Check className="w-4 h-4" />
+            <span>Mark Complete</span>
+          </button>
+        </div>
+      )}
+
+      {/* Skip to Next hint (bottom left) */}
+      {isEmbedded && completed && (
+        <div className="absolute bottom-4 left-4 z-20">
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 text-slate-300 text-sm rounded-lg backdrop-blur-sm">
+            <SkipForward className="w-4 h-4" />
+            <span>Waiting for next video...</span>
+          </div>
         </div>
       )}
 
@@ -100,7 +136,7 @@ const VideoPlayer = ({ src, onComplete, poster, isCompleted, initialTime = 0, on
       {!embedUrl && (
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800">
             <div 
-            className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
             />
         </div>
