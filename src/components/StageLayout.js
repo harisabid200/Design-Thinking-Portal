@@ -6,6 +6,7 @@ import UpNextOverlay from './UpNextOverlay';
 import ProjectWorkspace from './project/ProjectWorkspace';
 import ProjectSelectionModal from './project/ProjectSelectionModal';
 import StageUnlockProgress from './StageUnlockProgress';
+import AIAssistant from './ai/AIAssistant';
 import { PenTool, Info, FolderKanban, List, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProgress } from '../context/ProgressContext';
@@ -305,16 +306,7 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
              )}
              
              {sidebarTab === 'tools' && (
-                <div className="h-full flex flex-col">
-                   {activeToolComponent ? (
-                     activeToolComponent
-                   ) : (
-                     <div className="p-6 text-center text-slate-400">
-                       <Sparkles className="w-8 h-8 mx-auto mb-3 text-slate-500" />
-                       <p className="text-sm">No AI tools available for this stage yet.</p>
-                     </div>
-                   )}
-                </div>
+                <AIAssistant stageName={stageName} />
              )}
          </div>
       </div>

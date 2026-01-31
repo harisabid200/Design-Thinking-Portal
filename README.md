@@ -1,70 +1,137 @@
-# Getting Started with Create React App
+# Design Thinking Portal
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, interactive learning platform for design thinking education with AI-powered mentorship.
 
-## Available Scripts
+![React](https://img.shields.io/badge/React-19.x-blue)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-green)
+![Gemini AI](https://img.shields.io/badge/Gemini-AI-purple)
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **5-Stage Design Thinking Course** - Empathise, Define, Ideate, Prototype, Test
+- **Video-based Learning** - Progress tracking with 90% completion requirement
+- **Project-based Learning** - 5 project templates with guided assignments
+- **AI Mentor** - Context-aware chatbot that guides without solving
+- **AI Evaluation** - Constructive feedback on assignment submissions
+- **Instructor Portal** - Content management for educators
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Quick Start
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Prerequisites
 
-### `npm test`
+- Node.js 18+ 
+- npm or yarn
+- Supabase account
+- Google AI (Gemini) API key
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Installation
 
-### `npm run build`
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/design-thinking.git
+cd design-thinking
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# Install dependencies
+npm install
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Copy environment template
+cp .env.example .env
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Fill in your environment variables in .env
 
-### `npm run eject`
+# Start development server
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Environment Variables
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Create a `.env` file with:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```env
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+REACT_APP_GEMINI_API_KEY=your_gemini_api_key
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Scripts
 
-## Learn More
+| Command | Description |
+|---------|-------------|
+| `npm start` | Start development server |
+| `npm run build` | Create production build |
+| `npm test` | Run unit tests (watch mode) |
+| `npm run test:ci` | Run unit tests (CI mode) |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run test:e2e` | Run Playwright E2E tests |
+| `npm run test:e2e:ui` | Run E2E tests with UI dashboard |
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Deployment
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Vercel (Recommended)
 
-### Code Splitting
+1. Push to GitHub
+2. Import project in [Vercel](https://vercel.com)
+3. Add environment variables in Vercel dashboard
+4. Deploy
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Netlify
 
-### Analyzing the Bundle Size
+1. Push to GitHub
+2. Import project in [Netlify](https://netlify.com)
+3. Build command: `npm run build`
+4. Publish directory: `build`
+5. Add environment variables in Netlify dashboard
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Manual Deployment
 
-### Making a Progressive Web App
+```bash
+# Build the app
+npm run build
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+# The 'build' folder contains static files
+# Upload to any static hosting service
+```
 
-### Advanced Configuration
+## Database Setup
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Run the SQL migrations in Supabase SQL Editor:
 
-### Deployment
+1. Core schema (users, stage_content, video_progress)
+2. Project system (user_projects, project_deliverables)
+3. RLS policies for security
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+See `/artifacts/supabase_schema.sql` for the complete schema.
 
-### `npm run build` fails to minify
+## Architecture
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```
+src/
+├── components/     # React components
+├── context/        # React contexts (Auth, Project, CourseContent)
+├── pages/          # Page components
+├── services/       # AI service and prompts
+├── lib/            # Supabase and Gemini clients
+└── tools/          # Stage-specific AI tools
+```
+
+## Testing
+
+- **Unit Tests**: Jest + React Testing Library
+- **E2E Tests**: Playwright
+
+```bash
+# Run all tests
+npm run test:ci && npm run test:e2e
+```
+
+## License
+
+MIT
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request

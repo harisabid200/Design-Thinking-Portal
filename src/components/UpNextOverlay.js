@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, X, SkipForward, Trophy, Sparkles } from 'lucide-react';
+import { Play, X, Trophy, Sparkles } from 'lucide-react';
 
 /**
  * UpNextOverlay - Shows after video completion with countdown to next video

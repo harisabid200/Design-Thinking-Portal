@@ -184,8 +184,7 @@ export const ProjectProvider = ({ children }) => {
         const result = await supabase
           .from('project_deliverables')
           .update({
-            content: content,
-            updated_at: new Date().toISOString()
+            content: content
           })
           .eq('id', existing.id)
           .select()

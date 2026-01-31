@@ -13,6 +13,7 @@
     "lucide-react": "^0.563.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.0",
     "react-scripts": "5.0.1",
     "router": "^2.2.0",
@@ -22,6 +23,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
+    "test:ci": "react-scripts test --watchAll=false --ci",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:headed": "npx playwright test --headed",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -43,6 +49,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17"
