@@ -124,7 +124,63 @@ const StageCard = ({ stage, index, onLockedClick }) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { getStageInfo } = useProgress();
+  const { getStageInfo, isStageUnlocked } = useProgress();
+  
+  // Calculate current progress
+  const getCurrentStageIndex = () => {
+    for (let i = STAGE_ORDER.length - 1; i >= 0; i--) {
+      const stageInfo = getStageInfo(STAGE_ORDER[i]);
+      if (stageInfo?.isComplete) {
+        return i + 1; // Return next stage index
+      }
+    }
+    return 0; // Start from beginning
+  };
+
+  const currentStageIndex = getCurrentStageIndex();
+  const currentStageName = STAGE_ORDER[Math.min(currentStageIndex, STAGE_ORDER.length - 1)];
+  const completedStages = STAGE_ORDER.filter(stage => getStageInfo(stage)?.isComplete).length;
+  const isAllComplete = completedStages === 5;
+
+  // Dynamic welcome content
+  const getWelcomeContent = () => {
+    if (isAllComplete) {
+      return {
+        title: "🎉 Congratulations!",
+        message: "You've completed all 5 stages of Design Thinking! Review any stage or start a new project.",
+        buttonText: "Review Course",
+        buttonPath: "/stage/empathise",
+        bgClass: "bg-gradient-to-r from-green-600 to-emerald-600"
+      };
+    }
+    
+    if (completedStages === 0) {
+      return {
+        title: "Welcome to Design Thinking!",
+        message: "Start your journey by understanding user needs in the Empathise stage.",
+        buttonText: "Start Learning",
+        buttonPath: "/stage/empathise",
+        bgClass: "bg-indigo-600"
+      };
+    }
+
+    const stageMessages = {
+      Define: "Great progress! Now let's define the problem clearly.",
+      Ideate: "Time to get creative! Generate ideas to solve your problem.",
+      Prototype: "Let's build! Create prototypes to test your ideas.",
+      Test: "Almost there! Test your prototypes with real users."
+    };
+
+    return {
+      title: `Continue: ${currentStageName}`,
+      message: stageMessages[currentStageName] || "Keep going! You're making great progress.",
+      buttonText: `Continue ${currentStageName}`,
+      buttonPath: `/stage/${currentStageName.toLowerCase()}`,
+      bgClass: "bg-indigo-600"
+    };
+  };
+
+  const welcomeContent = getWelcomeContent();
   
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -193,26 +249,33 @@ const Dashboard = () => {
           <p className="mt-2 text-gray-600">Track your progress through the 5 stages of Design Thinking.</p>
         </div>
 
-        {/* Progress Overview */}
-        <div className="bg-indigo-600 rounded-2xl p-8 text-white relative overflow-hidden">
+        {/* Progress Overview - Dynamic based on progress */}
+        <div className={`${welcomeContent.bgClass} rounded-2xl p-8 text-white relative overflow-hidden`}>
           <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-4">Welcome back!</h2>
-            <p className="text-indigo-100 max-w-xl mb-6">
-              You're currently at the beginning of your Design Thinking journey. 
-              Start with the "Empathise" stage to begin understanding your users.
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">{welcomeContent.title}</h2>
+              {completedStages > 0 && (
+                <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">{completedStages}/5 Complete</span>
+                </div>
+              )}
+            </div>
+            <p className="text-white/90 max-w-xl mb-6">
+              {welcomeContent.message}
             </p>
             <Link 
-              to="/stage/empathise"
+              to={welcomeContent.buttonPath}
               className="inline-flex items-center space-x-2 bg-white text-indigo-600 px-6 py-3 rounded-lg font-bold hover:bg-indigo-50 transition-colors"
             >
               <PlayCircle className="w-5 h-5" />
-              <span>Continue Learning</span>
+              <span>{welcomeContent.buttonText}</span>
             </Link>
           </div>
           
           {/* Decorative background circles */}
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-indigo-500 rounded-full opacity-50 blur-3xl" />
-          <div className="absolute bottom-0 right-40 w-60 h-60 bg-indigo-700 rounded-full opacity-50 blur-3xl" />
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full opacity-50 blur-3xl" />
+          <div className="absolute bottom-0 right-40 w-60 h-60 bg-white/10 rounded-full opacity-50 blur-3xl" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
