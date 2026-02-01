@@ -6,10 +6,7 @@ import {
   ChevronRight, 
   CheckCircle2, 
   Circle, 
-  FileText,
-  Sparkles,
-  MessageSquare,
-  ChevronDown
+  FileText
 } from 'lucide-react';
 
 const ProjectWorkspace = ({ currentStage }) => {
@@ -21,7 +18,6 @@ const ProjectWorkspace = ({ currentStage }) => {
   } = useProject();
   const { refreshProgress } = useProgress();
   
-  const [showAIChat, setShowAIChat] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedDeliverable, setSelectedDeliverable] = useState(null);
 
@@ -131,46 +127,6 @@ const ProjectWorkspace = ({ currentStage }) => {
               })}
             </div>
           </div>
-        </div>
-
-        {/* AI Assistant Section */}
-        <div className="border-t border-slate-700">
-          <button
-            onClick={() => setShowAIChat(!showAIChat)}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-white text-sm">AI Assistant</h4>
-                <p className="text-xs text-slate-400">Get contextual help</p>
-              </div>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showAIChat ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showAIChat && (
-            <div className="p-4 pt-0">
-              <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
-                <div className="flex items-start gap-2 text-sm text-slate-300 mb-3">
-                  <MessageSquare className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
-                  <p>Ask me about your project, this stage, or how to complete assignments...</p>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Type your question..."
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-400 focus:border-indigo-500 focus:outline-none"
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-2 text-center">
-                  AI integration coming soon
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

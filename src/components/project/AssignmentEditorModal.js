@@ -5,6 +5,7 @@ import AIEvaluationModal from '../ai/AIEvaluationModal';
 
 // Import specific editors
 import InterviewNotesEditor from './editors/InterviewNotesEditor';
+import UserPersonaEditor from './editors/UserPersonaEditor';
 import ProblemStatementEditor from './editors/ProblemStatementEditor';
 import BrainstormEditor from './editors/BrainstormEditor';
 import PrototypeEditor from './editors/PrototypeEditor';
@@ -66,6 +67,8 @@ const AssignmentEditorModal = ({ isOpen, onClose, stageName, deliverable }) => {
     switch (deliverable.type) {
       case 'interview_notes':
         return <InterviewNotesEditor content={content} onChange={setContent} projectTitle={project?.title} />;
+      case 'user_persona':
+        return <UserPersonaEditor content={content} onChange={setContent} projectTitle={project?.title} />;
       case 'problem_statement':
         return <ProblemStatementEditor content={content} onChange={setContent} projectTitle={project?.title} />;
       case 'brainstorm':
