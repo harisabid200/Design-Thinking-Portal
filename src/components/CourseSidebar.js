@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, FileText, Link as LinkIcon, Circle, CheckCircle2, Lock, Play, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import UnlockProgressPanel from './UnlockProgressPanel';
 
 const STAGE_ORDER = ['Empathise', 'Define', 'Ideate', 'Prototype', 'Test'];
 
@@ -20,7 +21,8 @@ const CourseSidebar = ({
     onSelectContent, 
     completedIds = {}, 
     onToggleComplete,
-    isStageUnlocked 
+    isStageUnlocked,
+    onSwitchToProjectTab
 }) => {
   const navigate = useNavigate();
   const [expandedStages, setExpandedStages] = useState({});
@@ -206,6 +208,12 @@ const CourseSidebar = ({
             );
         })}
       </div>
+
+      {/* Unlock Progress Panel - Shows at bottom */}
+      <UnlockProgressPanel 
+        currentStage={currentStage} 
+        onGoToProject={onSwitchToProjectTab}
+      />
     </div>
   );
 };

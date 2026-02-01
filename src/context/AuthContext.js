@@ -52,7 +52,15 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signUp = (email, password) => {
-    return supabase.auth.signUp({ email, password });
+    // Use current origin for email redirect (works in dev and production)
+    const redirectUrl = `${window.location.origin}/login`;
+    return supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: redirectUrl
+      }
+    });
   };
 
   const signIn = (email, password) => {

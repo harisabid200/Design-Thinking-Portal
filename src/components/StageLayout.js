@@ -298,6 +298,7 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
                     completedIds={completedIds}
                     onToggleComplete={handleToggleComplete}
                     isStageUnlocked={isStageUnlocked}
+                    onSwitchToProjectTab={() => setSidebarTab('project')}
                 />
              )}
              

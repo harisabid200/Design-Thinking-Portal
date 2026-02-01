@@ -1,25 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProject, STAGE_DELIVERABLES } from '../../context/ProjectContext';
-import { useProgress } from '../../context/ProgressContext';
+import { useProgress, STAGE_ORDER } from '../../context/ProgressContext';
 import AssignmentEditorModal from './AssignmentEditorModal';
+import UnlockToast from '../UnlockToast';
 import { 
   ChevronRight, 
   CheckCircle2, 
   Circle, 
-  FileText
+  FileText,
+  ChevronDown,
+  Lock
 } from 'lucide-react';
 
+const STAGE_ICONS = {
+  Empathise: '❤️',
+  Define: '🎯',
+  Ideate: '💡',
+  Prototype: '✏️',
+  Test: '🧪'
+};
+
 const ProjectWorkspace = ({ currentStage }) => {
+  const navigate = useNavigate();
   const { 
     project, 
     isDeliverableComplete, 
     getStageProgress,
     setShowProjectModal 
   } = useProject();
-  const { refreshProgress } = useProgress();
+  const { refreshProgress, isStageUnlocked, getStageInfo } = useProgress();
   
+  // Selected stage for viewing (defaults to current stage from video)
+  const [selectedStage, setSelectedStage] = useState(currentStage);
+  const [showStageDropdown, setShowStageDropdown] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedDeliverable, setSelectedDeliverable] = useState(null);
+  
+  // UnlockToast state
+  const [showUnlockToast, setShowUnlockToast] = useState(false);
+  const [lockedStageInfo, setLockedStageInfo] = useState({ locked: null, required: null, info: null });
+
+  // Sync with currentStage when it changes (user navigates via video)
+  useEffect(() => {
+    setSelectedStage(currentStage);
+  }, [currentStage]);
 
   // Handle opening assignment editor
   const handleOpenAssignment = (stageName, deliverable) => {
@@ -35,6 +60,30 @@ const ProjectWorkspace = ({ currentStage }) => {
     if (refreshProgress) {
       refreshProgress();
     }
+  };
+
+  // Handle stage selection
+  const handleStageSelect = (stage) => {
+    setSelectedStage(stage);
+    setShowStageDropdown(false);
+  };
+
+  // Handle locked stage click - show UnlockToast
+  const handleLockedStageClick = (stage, index) => {
+    const prevStageName = STAGE_ORDER[index - 1];
+    const prevStageInfo = getStageInfo(prevStageName);
+    setLockedStageInfo({
+      locked: stage,
+      required: prevStageName,
+      info: prevStageInfo
+    });
+    setShowUnlockToast(true);
+    setShowStageDropdown(false);
+  };
+
+  // Navigate to required stage
+  const handleNavigateToStage = (stageName) => {
+    navigate(`/stage/${stageName.toLowerCase()}`);
   };
 
   // If no project, show prompt to create one
@@ -58,8 +107,9 @@ const ProjectWorkspace = ({ currentStage }) => {
     );
   }
 
-  const stageDeliverables = STAGE_DELIVERABLES[currentStage] || [];
-  const stageProgress = getStageProgress(currentStage);
+  const stageDeliverables = STAGE_DELIVERABLES[selectedStage] || [];
+  const stageProgress = getStageProgress(selectedStage);
+  const isViewingDifferentStage = selectedStage !== currentStage;
 
   return (
     <>
@@ -74,10 +124,80 @@ const ProjectWorkspace = ({ currentStage }) => {
           <p className="text-xs text-slate-400 mt-1 truncate">{project.target_users}</p>
         </div>
 
+        {/* Stage Selector */}
+        <div className="p-3 border-b border-slate-700 bg-slate-800/50">
+          <div className="relative">
+            <button
+              onClick={() => setShowStageDropdown(!showStageDropdown)}
+              className="w-full flex items-center justify-between p-2.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{STAGE_ICONS[selectedStage]}</span>
+                <span className="font-medium text-white">{selectedStage}</span>
+                {isViewingDifferentStage && (
+                  <span className="text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">
+                    Browsing
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showStageDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown */}
+            {showStageDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-20 overflow-hidden">
+                {STAGE_ORDER.map((stage) => {
+                  const unlocked = isStageUnlocked(stage);
+                  const isSelected = stage === selectedStage;
+                  const isCurrent = stage === currentStage;
+                  
+                  return (
+                    <button
+                      key={stage}
+                      onClick={() => unlocked 
+                        ? handleStageSelect(stage) 
+                        : handleLockedStageClick(stage, STAGE_ORDER.indexOf(stage))
+                      }
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left
+                        ${isSelected ? 'bg-indigo-500/20' : 'hover:bg-slate-700/50'}
+                        ${!unlocked ? 'opacity-75 hover:opacity-100' : ''}
+                      `}
+                    >
+                      <span className="text-lg">{STAGE_ICONS[stage]}</span>
+                      <span className={`flex-1 font-medium ${isSelected ? 'text-indigo-300' : 'text-white'}`}>
+                        {stage}
+                      </span>
+                      {!unlocked && <Lock className="w-3.5 h-3.5 text-amber-400" />}
+                      {isCurrent && unlocked && (
+                        <span className="text-xs bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded">
+                          Current
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Viewing different stage hint */}
+          {isViewingDifferentStage && (
+            <p className="text-xs text-amber-400/80 mt-2 text-center">
+              Viewing {selectedStage} assignments • 
+              <button 
+                onClick={() => setSelectedStage(currentStage)}
+                className="underline hover:text-amber-300 ml-1"
+              >
+                Back to {currentStage}
+              </button>
+            </p>
+          )}
+        </div>
+
         {/* Stage Progress */}
         <div className="p-4 border-b border-slate-700">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-300">{currentStage} Progress</span>
+            <span className="text-sm font-medium text-slate-300">{selectedStage} Progress</span>
             <span className="text-sm font-bold text-indigo-400">{stageProgress}%</span>
           </div>
           <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -96,11 +216,11 @@ const ProjectWorkspace = ({ currentStage }) => {
             </h4>
             <div className="space-y-2">
               {stageDeliverables.map((del) => {
-                const isComplete = isDeliverableComplete(currentStage, del.type);
+                const isComplete = isDeliverableComplete(selectedStage, del.type);
                 return (
                   <button
                     key={del.type}
-                    onClick={() => handleOpenAssignment(currentStage, del)}
+                    onClick={() => handleOpenAssignment(selectedStage, del)}
                     className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all text-left group
                       ${isComplete 
                         ? 'bg-emerald-500/10 border border-emerald-500/30' 
@@ -136,6 +256,16 @@ const ProjectWorkspace = ({ currentStage }) => {
         onClose={handleCloseEditor}
         stageName={selectedDeliverable?.stageName}
         deliverable={selectedDeliverable?.deliverable}
+      />
+
+      {/* Unlock Requirements Toast */}
+      <UnlockToast
+        isOpen={showUnlockToast}
+        onClose={() => setShowUnlockToast(false)}
+        lockedStage={lockedStageInfo.locked}
+        requiredStage={lockedStageInfo.required}
+        stageInfo={lockedStageInfo.info}
+        onNavigate={handleNavigateToStage}
       />
     </>
   );
