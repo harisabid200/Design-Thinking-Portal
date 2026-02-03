@@ -7,7 +7,7 @@ import ProjectWorkspace from './project/ProjectWorkspace';
 import ProjectSelectionModal from './project/ProjectSelectionModal';
 import StageUnlockProgress from './StageUnlockProgress';
 import AIAssistant from './ai/AIAssistant';
-import { PenTool, Info, FolderKanban, List, Sparkles } from 'lucide-react';
+import { PenTool, Info, FolderKanban, List, Sparkles, X, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProgress } from '../context/ProgressContext';
 import { useProject } from '../context/ProjectContext';
@@ -38,6 +38,9 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
   // Right Panel State - 3 tabs: content, project, tools
   const [sidebarTab, setSidebarTab] = useState('content');
   
+  // Mobile sidebar state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  
   // Bottom Tab State
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -60,6 +63,11 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
       }
     }
   }, [stageName, initialLoadComplete, getStageVideos, currentContent]);
+
+  // Close mobile sidebar when switching tabs
+  const handleSidebarTabChange = (tab) => {
+    setSidebarTab(tab);
+  };
 
   // Handle Video Progress Update (Resume Feature)
   const handleProgressUpdate = async (time) => {
@@ -167,15 +175,15 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
         isStageComplete={isStageComplete}
       />
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
       
       {/* LEFT / CENTER: Video & Bottom Panel */}
       <div className="flex-1 flex flex-col h-full min-w-0">
         
-        {/* 1. TOP: Video Area */}
-        <div className="flex-none h-[60vh] bg-black flex items-center justify-center relative">
+        {/* 1. TOP: Video Area - Responsive height */}
+        <div className="flex-none h-[35vh] sm:h-[45vh] lg:h-[60vh] bg-black flex items-center justify-center relative">
             {currentContent?.type === 'video' ? (
-                <div className="w-full h-full p-4 flex flex-col items-center justify-center">
+                <div className="w-full h-full p-2 sm:p-4 flex flex-col items-center justify-center">
                     <div className="w-full h-full max-w-6xl flex items-center justify-center">
                        <VideoPlayer 
                             src={currentContent.url} 
@@ -206,17 +214,17 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
         {/* 2. BOTTOM: Info & Tabs */}
         <div className="flex-1 bg-slate-800 flex flex-col min-h-0 overflow-hidden">
             {/* Tabs Header */}
-            <div className="flex border-b border-slate-700 bg-slate-800/50 px-4">
+            <div className="flex border-b border-slate-700 bg-slate-800/50 px-2 sm:px-4">
                 <button 
                     onClick={() => setActiveTab('overview')}
-                    className={`py-3 px-4 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium flex items-center space-x-1 sm:space-x-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
                 >
                     <Info className="w-4 h-4" />
                     <span>Overview</span>
                 </button>
                 <button 
                     onClick={() => setActiveTab('notes')}
-                    className={`py-3 px-4 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${activeTab === 'notes' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium flex items-center space-x-1 sm:space-x-2 border-b-2 transition-colors ${activeTab === 'notes' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
                 >
                     <PenTool className="w-4 h-4" />
                     <span>Notes</span>
@@ -224,13 +232,13 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
             </div>
 
             {/* Tab Content (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6">
                 {activeTab === 'overview' && currentContent && (
                     <div className="max-w-3xl">
                         {/* Video Title & Description - PRIMARY CONTENT */}
-                        <div className="mb-6">
-                          <h2 className="text-xl font-bold text-white mb-2">{currentContent.title}</h2>
-                          <p className="text-slate-300 leading-relaxed">
+                        <div className="mb-4 sm:mb-6">
+                          <h2 className="text-lg sm:text-xl font-bold text-white mb-2">{currentContent.title}</h2>
+                          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                             {currentContent.description || 'No description available for this lesson.'}
                           </p>
                         </div>
@@ -238,12 +246,15 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
                         {/* Stage Progress - shows requirements (hide when fully complete) */}
                         {!isStageComplete && (
                           <StageUnlockProgress
-                            videosComplete={videoProgress === 100}
+                            videosComplete={videoProgressPercent === 100}
                             videosWatched={completedStageCount}
                             videoCount={totalStageVideos}
                             deliverablesComplete={stageInfo?.deliverablesComplete}
                             stageName={stageName}
-                            onGoToProject={() => setSidebarTab('project')}
+                            onGoToProject={() => {
+                              setSidebarTab('project');
+                              setMobileSidebarOpen(true);
+                            }}
                           />
                         )}
                     </div>
@@ -256,20 +267,53 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
         </div>
       </div>
 
-      {/* RIGHT SIDEBAR: Content / Project / Tools */}
-      <div className="w-80 bg-slate-900 border-l border-slate-700/50 flex flex-col z-20 flex-shrink-0">
+      {/* Mobile Sidebar Toggle Button - Fixed at bottom right */}
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        className="lg:hidden fixed bottom-4 right-4 z-30 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
+      >
+        <Menu className="w-6 h-6" />
+      </button>
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileSidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* RIGHT SIDEBAR: Content / Project / Tools - Slides in on mobile */}
+      <div className={`
+        fixed lg:relative inset-y-0 right-0 
+        w-full sm:w-96 lg:w-80 
+        bg-slate-900 border-l border-slate-700/50 
+        flex flex-col z-50 lg:z-20 flex-shrink-0
+        transform transition-transform duration-300 ease-in-out
+        ${mobileSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        pt-14 lg:pt-0
+      `}>
+         {/* Mobile Close Button */}
+         <button
+           onClick={() => setMobileSidebarOpen(false)}
+           className="lg:hidden absolute top-16 right-4 z-10 p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+         >
+           <X className="w-5 h-5" />
+         </button>
+
          {/* 3-Tab Header */}
          <div className="grid grid-cols-3 border-b border-slate-700/50 bg-slate-800">
              <button 
-                 onClick={() => setSidebarTab('content')}
+                 onClick={() => handleSidebarTabChange('content')}
                  className={`py-3 text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-1
                    ${sidebarTab === 'content' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-900' : 'text-slate-400 hover:bg-slate-700'}`}
              >
                  <List className="w-3.5 h-3.5" />
-                 Content
+                 <span className="hidden sm:inline">Content</span>
+                 <span className="sm:hidden">List</span>
              </button>
              <button 
-                 onClick={() => setSidebarTab('project')}
+                 onClick={() => handleSidebarTabChange('project')}
                  className={`py-3 text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-1
                    ${sidebarTab === 'project' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-900' : 'text-slate-400 hover:bg-slate-700'}`}
              >
@@ -277,7 +321,7 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
                  Project
              </button>
              <button 
-                 onClick={() => setSidebarTab('tools')}
+                 onClick={() => handleSidebarTabChange('tools')}
                  className={`py-3 text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-1
                    ${sidebarTab === 'tools' ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-900' : 'text-slate-400 hover:bg-slate-700'}`}
              >
@@ -294,7 +338,10 @@ const StageLayout = ({ stageName, activeToolComponent }) => {
                     allResources={allResources}
                     currentStage={stageName}
                     currentContentId={currentContent?.id}
-                    onSelectContent={setCurrentContent}
+                    onSelectContent={(content) => {
+                      setCurrentContent(content);
+                      setMobileSidebarOpen(false); // Close sidebar on mobile after selection
+                    }}
                     completedIds={completedIds}
                     onToggleComplete={handleToggleComplete}
                     isStageUnlocked={isStageUnlocked}
