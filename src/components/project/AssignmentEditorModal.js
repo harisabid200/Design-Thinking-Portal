@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import AIEvaluationModal from '../ai/AIEvaluationModal';
@@ -85,9 +86,9 @@ const AssignmentEditorModal = ({ isOpen, onClose, stageName, deliverable }) => {
     }
   };
 
-  return (
+  return ReactDOM.createPortal(
     <>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
         <div className="bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-slate-700 shadow-2xl flex flex-col animate-scaleIn">
           {/* Header */}
           <div className="p-5 border-b border-slate-700 bg-gradient-to-r from-indigo-900/50 to-purple-900/50 flex-shrink-0">
@@ -158,7 +159,8 @@ const AssignmentEditorModal = ({ isOpen, onClose, stageName, deliverable }) => {
         content={savedContent}
         deliverables={deliverables}
       />
-    </>
+    </>,
+    document.body
   );
 };
 
